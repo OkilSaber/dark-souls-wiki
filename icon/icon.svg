@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Dark Souls Wiki app icon — the coiled sword of a bonfire.
+
+  Drawn for legibility at launcher sizes: one bold silhouette, a single warm
+  light source, no detail that dissolves below ~48px. The palette is the app's
+  own (bg #0E0D0C, gold #D9B45F, ember #E07A3C) so the icon and the first
+  screen read as the same object.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Warm dark ground, lit from the embers at the base rather than evenly -->
+    <radialGradient id="bg" cx="50%" cy="70%" r="78%">
+      <stop offset="0%"   stop-color="#2E1E13"/>
+      <stop offset="55%"  stop-color="#17110D"/>
+      <stop offset="100%" stop-color="#0B0908"/>
+    </radialGradient>
+
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#E07A3C" stop-opacity="0.55"/>
+      <stop offset="45%"  stop-color="#C4551F" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#8A3A12" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Steel catches the light on its left edge, falls to shadow on the right -->
+    <linearGradient id="steel" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#6E6259"/>
+      <stop offset="28%"  stop-color="#CFC3B2"/>
+      <stop offset="52%"  stop-color="#8D8478"/>
+      <stop offset="100%" stop-color="#4A423B"/>
+    </linearGradient>
+
+    <linearGradient id="goldv" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#F2DA9A"/>
+      <stop offset="45%"  stop-color="#D9B45F"/>
+      <stop offset="100%" stop-color="#8A6B2A"/>
+    </linearGradient>
+
+    <linearGradient id="coil" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#8A6B2A"/>
+      <stop offset="35%"  stop-color="#E8C579"/>
+      <stop offset="70%"  stop-color="#C29A45"/>
+      <stop offset="100%" stop-color="#6B5220"/>
+    </linearGradient>
+
+    <!-- Ash is lit from inside, so it lightens towards the top of the mound
+         rather than darkening like a hole in the ground -->
+    <linearGradient id="ash" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#6A4A30"/>
+      <stop offset="35%"  stop-color="#402C1D"/>
+      <stop offset="100%" stop-color="#1A1310"/>
+    </linearGradient>
+
+    <radialGradient id="ashLit" cx="50%" cy="30%" r="70%">
+      <stop offset="0%"   stop-color="#C4622A" stop-opacity="0.75"/>
+      <stop offset="60%"  stop-color="#7A3A16" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#7A3A16" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Ember light pooling around the base of the sword -->
+  <circle cx="512" cy="770" r="340" fill="url(#glow)"/>
+
+  <!-- Ash mound the blade is driven into: a heap catching the firelight -->
+  <path d="M 226 846 Q 300 768 386 750 Q 466 736 512 734 Q 558 736 638 750 Q 724 768 798 846 Z" fill="url(#ash)"/>
+  <path d="M 320 818 Q 388 766 456 754 Q 512 747 568 754 Q 636 766 704 818 Z"
+        fill="url(#ashLit)"/>
+
+  <g id="sword" transform="translate(512 500) scale(1.13) translate(-512 -500)">
+    <!-- One continuous helix, split so the blade can sit between its halves.
+         Each turn descends half a pitch across the back and half across the
+         front, which is what stops it reading as a stack of loose rings. -->
+    <g fill="none" stroke="url(#coil)" stroke-width="26" stroke-linecap="round">
+      <path d="M 408 388 A 108 29 0 0 1 616 427"/>
+      <path d="M 408 466 A 108 29 0 0 1 616 505"/>
+      <path d="M 408 544 A 108 29 0 0 1 616 583"/>
+      <path d="M 408 622 A 108 29 0 0 1 616 661"/>
+    </g>
+
+    <!-- Blade: parallel body dropping to a point in the ash -->
+    <path d="M 474 330 H 550 V 704 L 512 812 L 474 704 Z" fill="url(#steel)"/>
+    <!-- Fuller, a single highlight down the centre line -->
+    <path d="M 505 348 H 519 V 694 L 512 736 L 505 694 Z" fill="#E8E0D2" opacity="0.30"/>
+
+    <!-- Front half of each turn, laid over the blade so the coil wraps the
+         steel instead of merely sitting behind it -->
+    <g fill="none" stroke="url(#coil)" stroke-width="26" stroke-linecap="round">
+      <path d="M 616 427 A 108 29 0 0 1 408 466"/>
+      <path d="M 616 505 A 108 29 0 0 1 408 544"/>
+      <path d="M 616 583 A 108 29 0 0 1 408 622"/>
+      <path d="M 616 661 A 108 29 0 0 1 408 700"/>
+    </g>
+
+    <!-- Crossguard, grip and pommel -->
+    <rect x="416" y="300" width="192" height="34" rx="16" fill="url(#goldv)"/>
+    <rect x="492" y="216" width="40" height="92" rx="14" fill="#4A423B"/>
+    <rect x="498" y="222" width="12" height="80" rx="6" fill="#8D8478" opacity="0.65"/>
+    <circle cx="512" cy="204" r="30" fill="url(#goldv)"/>
+    <circle cx="512" cy="198" r="11" fill="#F7E7B8" opacity="0.55"/>
+  </g>
+
+  <!-- Two embers rising, enough to say "lit" without adding clutter -->
+  <circle cx="392" cy="694" r="11" fill="#E07A3C" opacity="0.85"/>
+  <circle cx="640" cy="640" r="8"  fill="#F0A050" opacity="0.7"/>
+  <circle cx="352" cy="602" r="6"  fill="#E07A3C" opacity="0.5"/>
+</svg>
