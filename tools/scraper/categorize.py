@@ -155,6 +155,13 @@ BUILD_FIELD_RE = re.compile(
 BUILD_RE = re.compile(r"\b(build|pvp|pve)\b", re.I)
 HUB_SLUGS = {s for _, s, _ in CATEGORY_INDEXES}
 
+INDEX_RE = re.compile(
+    r"^[A-Za-z0-9'’\- ]{1,40}\s+(?:are|is)\s+an?\s+[A-Za-z ]{0,24}?"
+    r"Categor(?:y|ies)\s+in\s+Dark\s*Souls", re.I)
+
+def is_index_page(slug, page):
+    return slug in HUB_SLUGS or bool(INDEX_RE.match(page["text"].lstrip()))
+
 def classify_text(page):
     m = IS_A_RE.search(page["text"][:500])
     if not m:
@@ -211,6 +218,8 @@ def main():
     origin = Counter()
 
     def place(slug, label, section, how):
+        if is_index_page(slug, pages[slug]):
+            label, how = "Overviews", "index"
         assigned[slug] = (label, section)
         cat_members[(section, label)].append(slug)
         origin[how] += 1
