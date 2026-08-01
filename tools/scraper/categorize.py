@@ -155,6 +155,12 @@ BUILD_FIELD_RE = re.compile(
 BUILD_RE = re.compile(r"\b(build|pvp|pve)\b", re.I)
 HUB_SLUGS = {s for _, s, _ in CATEGORY_INDEXES}
 
+FORCE_CATEGORY = {
+    "Maps": ("Maps", "World"),
+}
+
+DROP_SLUGS = {"maps"}
+
 INDEX_RE = re.compile(
     r"^[A-Za-z0-9'’\- ]{1,40}\s+(?:are|is)\s+an?\s+[A-Za-z ]{0,24}?"
     r"Categor(?:y|ies)\s+in\s+Dark\s*Souls", re.I)
@@ -207,7 +213,8 @@ def main():
     print(f"pages: {len(pages)}")
 
     stubs = [s for s, p in pages.items()
-             if JUNK_SLUG_RE.match(s)
+             if s in DROP_SLUGS
+             or JUNK_SLUG_RE.match(s)
              or (len(p["text"]) < 40 and len(p["blocks"]) <= 4)]
     for s in stubs:
         del pages[s]
@@ -217,14 +224,18 @@ def main():
     cat_members = defaultdict(list)
     origin = Counter()
 
-    def place(slug, label, section, how):
-        if is_index_page(slug, pages[slug]):
+    def place(slug, label, section, how, forced=False):
+        if not forced and is_index_page(slug, pages[slug]):
             label, how = "Overviews", "index"
         assigned[slug] = (label, section)
         cat_members[(section, label)].append(slug)
         origin[how] += 1
 
     for slug, page in pages.items():
+        if slug in FORCE_CATEGORY:
+            label, section = FORCE_CATEGORY[slug]
+            place(slug, label, section, "forced", forced=True)
+            continue
         r = classify_text(page)
         if r:
             place(slug, r[0], r[1], "text")

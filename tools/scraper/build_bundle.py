@@ -5,9 +5,15 @@ from collections import Counter
 from pathlib import Path
 
 APP = Path(__file__).resolve().parents[2]
+if not (APP / "pubspec.yaml").is_file():
+    raise SystemExit(
+        f"{APP} is not the Flutter project root. Run this script from "
+        f"tools/scraper inside the checkout, not from a copy elsewhere.")
 DATA = APP / "assets" / "data"
 IMG = APP / "assets" / "img"
 SHARDS = 64
+
+TITLE_FIX = {"Maps": "Maps", "maps": "Maps"}
 
 def shard_of(slug):
     h = 0
@@ -22,6 +28,9 @@ def main():
     imap = json.loads(Path("parsed/image_map.json").read_text())
 
     pages = {k: v for k, v in pages.items() if k in kept}
+    for slug, fixed in TITLE_FIX.items():
+        if slug in pages:
+            pages[slug]["title"] = fixed
     DATA.mkdir(parents=True, exist_ok=True)
     IMG.mkdir(parents=True, exist_ok=True)
 
