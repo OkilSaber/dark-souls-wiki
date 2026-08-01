@@ -1,5 +1,4 @@
 import 'package:dark_souls_wiki/favorites.dart';
-import 'package:dark_souls_wiki/main.dart';
 import 'package:dark_souls_wiki/screens/home_screen.dart';
 import 'package:dark_souls_wiki/theme.dart';
 import 'package:dark_souls_wiki/wiki_repository.dart';
@@ -79,25 +78,9 @@ void main() {
   group('favorites scope placement', () {
     setUp(() => SharedPreferences.setMockInitialValues({}));
 
-    /// Regression: the scope used to live inside `MaterialApp.home`, so every
-    /// pushed route — search, category, article — was mounted under the
-    /// Navigator, which sits *above* `home`, and blew up on lookup.
-    testWidgets('sits above the navigator, so pushed routes can see it',
-        (tester) async {
-      await tester.pumpWidget(const DarkSoulsWikiApp());
-      await tester.pump();
-
-      final navigator = find.byType(Navigator);
-      expect(navigator, findsWidgets);
-      expect(
-        find.ancestor(
-          of: navigator.first,
-          matching: find.byType(FavoritesScope),
-        ),
-        findsOneWidget,
-        reason: 'pushed routes lose the scope unless it wraps MaterialApp',
-      );
-    });
+    // The "scope wraps MaterialApp" assertion lives in app_structure_test.dart:
+    // it has to pump the real app, which starts a background index load, and
+    // that must not run in the same file as tests which load the repository.
 
     testWidgets('resolves from inside a pushed route', (tester) async {
       final store = FavoritesStore();
