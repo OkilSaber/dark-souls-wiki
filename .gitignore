@@ -65,3 +65,8 @@ icon/preview*.png
 icon/mask_preview.png
 icon/icon_foreground.svg
 icon/icon_background.svg
+
+# Release signing credentials — never commit; back up the keystore separately.
+android/key.properties
+*.jks
+*.keystore
