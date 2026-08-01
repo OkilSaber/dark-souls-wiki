@@ -1,4 +1,3 @@
-"""Phase 4: download every image referenced by a kept page."""
 import asyncio
 import json
 import urllib.parse
@@ -11,7 +10,6 @@ RAW = Path("images_raw")
 CONCURRENCY = 10
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-
 
 async def one(client, name, remote, sem, stats):
     dest = RAW / name
@@ -36,14 +34,12 @@ async def one(client, name, remote, sem, stats):
         stats["fail"] += 1
         stats.setdefault("failed", []).append(name)
 
-
 async def main():
     RAW.mkdir(exist_ok=True)
     images = json.loads(Path("parsed/images.json").read_text())
     pages = json.loads(Path("parsed/pages.json").read_text(encoding="utf-8"))
     kept = set(json.loads(Path("parsed/kept_slugs.json").read_text(encoding="utf-8")))
 
-    # only images actually reachable from a page we ship
     needed = {}
     for slug in kept:
         for n in pages[slug]["images"]:
@@ -64,7 +60,6 @@ async def main():
     if stats.get("failed"):
         Path("failed_images.txt").write_text("\n".join(stats["failed"]))
     Path("parsed/needed_images.json").write_text(json.dumps(needed, indent=1))
-
 
 if __name__ == "__main__":
     asyncio.run(main())

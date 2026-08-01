@@ -1,5 +1,3 @@
-"""Safety net: compare visible text in the source HTML against text captured
-in the parsed blocks, to catch systematic parser content loss."""
 import json
 import re
 import sys
@@ -12,10 +10,8 @@ from fetch_pages import cache_path
 
 STOP = re.compile(r"[^a-z0-9]+")
 
-
 def words(s):
     return [w for w in STOP.split(s.lower()) if len(w) > 3]
-
 
 def block_text(blocks):
     parts = []
@@ -35,7 +31,6 @@ def block_text(blocks):
                 for c in r:
                     parts += [s["x"] for s in c["s"]]
     return " ".join(parts)
-
 
 def main():
     pages = json.loads(Path("parsed/pages.json").read_text(encoding="utf-8"))
@@ -66,7 +61,6 @@ def main():
     print(f"\naudited {checked} pages; {len(bad)} below 80% word coverage")
     for cov, slug, n, miss in bad[:25]:
         print(f"  {cov:.0%} {slug[:44]:<44} src_words={n:<5} missing: {miss[:8]}")
-
 
 if __name__ == "__main__":
     main()

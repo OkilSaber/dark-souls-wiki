@@ -1,16 +1,3 @@
-"""Phase 2: parse cached HTML into structured JSON blocks.
-
-Output per page: ordered content blocks that the Flutter renderer walks directly.
-Block kinds:
-  {"t":"h",  "l":2, "x":"heading text"}
-  {"t":"p",  "s":[span,...]}
-  {"t":"li", "o":false, "items":[[span,...],...]}
-  {"t":"q",  "s":[span,...]}                     blockquote
-  {"t":"tbl","info":bool, "rows":[[cell,...],...]}
-  {"t":"img","src":"hash.png", "alt":"..."}
-span: {"x":text, "l":slug?, "b":1?, "i":1?}
-cell: {"s":[span,...], "img":["src",...], "h":1?, "cs":n?, "rs":n?}
-"""
 import hashlib
 import json
 import re
@@ -28,13 +15,10 @@ OUT = Path("parsed")
 BLOCK_TAGS = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "table",
               "blockquote", "div", "hr", "br", "img", "figure", "center", "section"}
 
-# Boilerplate text we never want in the app
 NOISE_RE = re.compile(
     r"(join the page discussion|tired of anon posting|register)|"
     r"(load more|anonymous)\s*$|"
-    # in-page anchor jumps are meaningless offline
     r"^\s*(jump to|back to top)\b.{0,40}$", re.I)
-
 
 def slug_of(href):
     if not href:
@@ -56,9 +40,7 @@ def slug_of(href):
         return None
     return urllib.parse.unquote(path)
 
-
 def img_name(src):
-    """Map an image URL to a stable local filename."""
     if not src:
         return None
     src = src.strip()
@@ -82,13 +64,11 @@ def img_name(src):
     h = hashlib.sha1(path.encode()).hexdigest()[:8]
     return f"{stem}_{h}{ext}", path
 
-
 class Parser:
     def __init__(self):
-        self.images = {}      # local name -> remote path
+        self.images = {}
         self.links = set()
 
-    # ---------- inline ----------
     def spans(self, node, bold=False, italic=False, link=None):
         out = []
         for child in node.children:
@@ -121,7 +101,7 @@ class Parser:
                     self.links.add(sl)
                 out += self.spans(child, bold, italic, sl or link)
             elif name == "img":
-                pass  # images handled at block level
+                pass
             elif name in ("script", "style", "sup", "sub"):
                 continue
             else:
@@ -130,7 +110,6 @@ class Parser:
 
     @staticmethod
     def merge(spans):
-        """Coalesce adjacent spans with identical styling."""
         out = []
         for s in spans:
             if out and out[-1].get("l") == s.get("l") and out[-1].get("b") == s.get("b") \
@@ -141,8 +120,6 @@ class Parser:
         for s in out:
             s["x"] = re.sub(r" {2,}", " ", s["x"])
         out = [s for s in out if s["x"].strip() or "\n" in s["x"]]
-        # Whitespace between an inline link and following punctuation becomes a
-        # stray space ("... in Dark Souls ."); close it across the span boundary.
         for i in range(1, len(out)):
             if out[i]["x"][:1] in ",.;:!?)%" and out[i - 1]["x"].endswith(" "):
                 out[i - 1]["x"] = out[i - 1]["x"].rstrip(" ")
@@ -158,7 +135,6 @@ class Parser:
                 names.append(name)
         return names
 
-    # ---------- blocks ----------
     def table(self, tb, info=False):
         rows = []
         for tr in tb.find_all("tr"):
@@ -196,8 +172,6 @@ class Parser:
         items = []
         lis = ul.find_all("li", recursive=False)
         if not lis:
-            # malformed wiki markup nests <ul> directly inside <ul>; without this
-            # fallback the whole list is silently dropped
             lis = ul.find_all("li")
         for li in lis:
             inner = self.spans(li)
@@ -212,7 +186,6 @@ class Parser:
         return {"t": "li", "o": 1 if ul.name == "ol" else 0, "items": items}
 
     def walk(self, node, out, depth=0):
-        """Emit blocks in document order."""
         for child in node.children:
             if isinstance(child, NavigableString):
                 if child.strip():
@@ -227,15 +200,11 @@ class Parser:
                 continue
             cls = " ".join(child.get("class") or [])
             cid = child.get("id") or ""
-            # skip comment/discussion widgets and ads
             if re.search(r"comment|disqus|ad-|advert|social|share|breadcrumb|editor|"
                          r"page-tools|toc-", cls + " " + cid, re.I):
                 continue
 
             if n in ("h1", "h2", "h3", "h4", "h5", "h6"):
-                # Index pages use headings as gallery cards:
-                #   <h3 class="col-sm-4"><a href="/Boss"><img/><br/>Boss</a></h3>
-                # so the link and image must be captured, not just the text.
                 imgs = self.collect_imgs(child)
                 sp = self.spans(child)
                 txt = " ".join(child.get_text(" ", strip=True).split())
@@ -291,7 +260,6 @@ class Parser:
                 for i in self.collect_imgs(child):
                     out.append({"t": "img", "src": i})
             else:
-                # container: recurse. Infobox divs are tagged so nested tables get info=1
                 if re.search(r"infobox", cls, re.I):
                     for tb in child.find_all("table"):
                         b = self.table(tb, info=True)
@@ -301,9 +269,7 @@ class Parser:
                 if depth < 14:
                     self.walk(child, out, depth + 1)
 
-
 def clean_blocks(blocks):
-    """Drop trailing boilerplate and collapse empties."""
     out = []
     for b in blocks:
         if b["t"] == "p":
@@ -313,20 +279,16 @@ def clean_blocks(blocks):
             if len(txt) < 2:
                 continue
         out.append(b)
-    # de-dup consecutive identical blocks (wiki templates repeat)
     ded = []
     for b in out:
         if ded and json.dumps(ded[-1], sort_keys=True) == json.dumps(b, sort_keys=True):
             continue
         ded.append(b)
-    # Trim trailing empty section headers, but cap it: some pages (user builds)
-    # legitimately use headings as body text, and popping greedily empties them.
     popped = 0
     while ded and ded[-1]["t"] == "h" and popped < 2 and len(ded) > 3:
         ded.pop()
         popped += 1
     return ded
-
 
 def parse_file(path, slug):
     html = path.read_text(encoding="utf-8", errors="replace")
@@ -350,8 +312,6 @@ def parse_file(path, slug):
         if t and len(t) < 120:
             title = t
 
-    # join with "" — spans already carry their own spacing, and re-inserting
-    # separators would put a gap before punctuation
     text = " ".join(
         "".join(s["x"] for s in b["s"])
         for b in blocks if b["t"] in ("p", "q")
@@ -364,7 +324,6 @@ def parse_file(path, slug):
         "links": sorted(p.links),
         "text": re.sub(r"\s+", " ", text).strip()[:1200],
     }, p.images
-
 
 def main():
     OUT.mkdir(exist_ok=True)
@@ -405,7 +364,6 @@ def main():
     print("pages:", len(pages), "distinct images:", len(all_images))
     nb = Counter(b["t"] for p in pages.values() for b in p["blocks"])
     print("blocks:", dict(nb))
-
 
 if __name__ == "__main__":
     main()

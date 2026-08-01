@@ -1,15 +1,3 @@
-"""Phase 3: assign every scraped page to a category.
-
-Signal priority matters. An index page links to everything it *mentions*
-(the Talismans page mentions Firelink Shrine), so index membership alone
-misclassifies badly. The page's own opening sentence is authoritative:
-the wiki consistently writes "X is a Weapon in Dark Souls".
-
- pass 1  self-description text classifier      (~64% of pages, high precision)
- pass 2  membership in an index page's *structured listing* only
-         (table cells / gallery cards / link-only list items, never prose)
- pass 3  build-page field heuristics, else Lore & Misc
-"""
 import json
 import re
 from collections import Counter, defaultdict
@@ -17,10 +5,7 @@ from pathlib import Path
 
 OUT = Path("parsed")
 
-# ---------------------------------------------------------------- text classifier
-# Maps the wiki's own "is a ___ in Dark Souls" phrasing to (category, section).
 TEXT_MAP = {
-    # Equipment
     "weapon": ("Weapons", "Equipment"),
     "ammunition": ("Ammunition", "Equipment"),
     "ammo": ("Ammunition", "Equipment"),
@@ -47,12 +32,10 @@ TEXT_MAP = {
     "talisman": ("Talismans", "Equipment"),
     "flame": ("Pyromancy Flames", "Equipment"),
     "pyromancy flame": ("Pyromancy Flames", "Equipment"),
-    # Magic
     "miracle": ("Miracles", "Magic"),
     "pyromancy": ("Pyromancies", "Magic"),
     "sorcery": ("Sorceries", "Magic"),
     "spell": ("Spells", "Magic"),
-    # Items
     "consumable": ("Consumables", "Items"),
     "consumble": ("Consumables", "Items"),
     "projectiles": ("Consumables", "Items"),
@@ -71,7 +54,6 @@ TEXT_MAP = {
     "focus": ("Items", "Items"),
     "item": ("Items", "Items"),
     "unobtainable item": ("Items", "Items"),
-    # World
     "boss": ("Bosses", "World"),
     "optional boss": ("Bosses", "World"),
     "final boss": ("Bosses", "World"),
@@ -89,10 +71,8 @@ TEXT_MAP = {
     "special dlc location": ("Locations", "World"),
     "area": ("Locations", "World"),
     "bonfire": ("Bonfires", "World"),
-    # Lore
     "mentioned-only location": ("Lore", "Lore"),
     "mentioned-only character": ("Lore", "Lore"),
-    # Character
     "covenant": ("Covenants", "Character"),
     "user-made covenant": ("Builds", "Builds"),
     "class": ("Classes", "Character"),
@@ -100,23 +80,16 @@ TEXT_MAP = {
     "stat": ("Stats", "Character"),
     "gesture": ("Gestures", "Character"),
     "gift": ("Gifts", "Character"),
-    # General / Guides
     "gameplay mechanic": ("Game Mechanics", "General"),
     "mechanic": ("Game Mechanics", "General"),
     "system": ("Game Mechanics", "General"),
     "damage type": ("Combat", "General"),
     "trophy and achievement": ("Trophies", "Guides"),
-    # Builds
     "player-created build": ("Builds", "Builds"),
     "build": ("Builds", "Builds"),
 }
 
-# ---------------------------------------------------------------- index listings
-# (display name, index slug, section) — most specific first. Used only as a
-# fallback, and only for links inside that page's structured listing.
 CATEGORY_INDEXES = [
-    # Locations first: the Places index is small and authoritative, while every
-    # equipment table lists the areas its items are found in.
     ("Locations", "Places", "World"),
     ("Helms", "Helms", "Equipment"),
     ("Chest Armor", "Chest+Armor", "Equipment"),
@@ -182,13 +155,11 @@ BUILD_FIELD_RE = re.compile(
 BUILD_RE = re.compile(r"\b(build|pvp|pve)\b", re.I)
 HUB_SLUGS = {s for _, s, _ in CATEGORY_INDEXES}
 
-
 def classify_text(page):
     m = IS_A_RE.search(page["text"][:500])
     if not m:
         return None
     phrase = re.sub(r"\s+", " ", m.group(1).strip().lower())
-    # pages phrased in the plural ("are the bosses of") need depluralising
     variants = [phrase]
     singular = re.sub(r"(?:es|s)$", "", phrase)
     words = [re.sub(r"(?:es|s)$", "", w) for w in phrase.split()]
@@ -196,21 +167,13 @@ def classify_text(page):
     for v in variants:
         if v in TEXT_MAP:
             return TEXT_MAP[v]
-    # longest suffix / word match, e.g. "curved greatsword weapon" -> "weapon"
     for key in sorted(TEXT_MAP, key=len, reverse=True):
         for v in variants:
             if v.endswith(key) or key in v.split():
                 return TEXT_MAP[key]
     return None
 
-
 def structured_links(page):
-    """Links that appear in an actual listing, not in prose.
-
-    Table cells and gallery cards are listings. A list item counts only when
-    its text is mostly link text, which distinguishes an index entry from a
-    sentence that happens to contain a link.
-    """
     out = set()
     for b in page["blocks"]:
         if b["t"] == "card":
@@ -232,7 +195,6 @@ def structured_links(page):
                             out.add(s["l"])
     return out
 
-
 def main():
     pages = json.loads((OUT / "pages.json").read_text(encoding="utf-8"))
     print(f"pages: {len(pages)}")
@@ -253,13 +215,11 @@ def main():
         cat_members[(section, label)].append(slug)
         origin[how] += 1
 
-    # pass 1 — self-description (authoritative)
     for slug, page in pages.items():
         r = classify_text(page)
         if r:
             place(slug, r[0], r[1], "text")
 
-    # pass 2 — structured listing membership for whatever text missed
     for label, idx_slug, section in CATEGORY_INDEXES:
         idx = pages.get(idx_slug)
         if not idx:
@@ -270,12 +230,10 @@ def main():
                 continue
             place(target, label, section, "listing")
 
-    # index/hub pages land in their own category
     for label, idx_slug, section in CATEGORY_INDEXES:
         if idx_slug in pages and idx_slug not in assigned:
             place(idx_slug, label, section, "hub")
 
-    # pass 3 — builds by their field markers, else misc
     for slug in [s for s in pages if s not in assigned]:
         if (BUILD_FIELD_RE.search(pages[slug]["text"])
                 or BUILD_RE.search(pages[slug]["title"]) or BUILD_RE.search(slug)):
@@ -309,7 +267,6 @@ def main():
         n = sum(c["count"] for c in s["categories"])
         print(f"  {s['name']:<10} {n:>5}  " +
               ", ".join(f"{c['name']}({c['count']})" for c in s["categories"][:8]))
-
 
 if __name__ == "__main__":
     main()
