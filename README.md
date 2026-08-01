@@ -160,3 +160,6 @@ your own local copy.
 
 The crawler honours the `User-agent: *` rules in the wiki's `robots.txt` and
 rate-limits itself. Built for personal offline use, not redistribution.
+
+The [MIT licence](LICENSE) applies to the code in this repository only — it does
+not and cannot grant any rights over the wiki content it fetches.
