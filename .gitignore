@@ -70,3 +70,6 @@ icon/icon_background.svg
 android/key.properties
 *.jks
 *.keystore
+
+# Screenshots from the flutter run console (s key)
+flutter_*.png
